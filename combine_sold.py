@@ -6,7 +6,7 @@ project_folder = Path(__file__).resolve().parent.parent
 csv_folder = project_folder / "csv"
 output_file = csv_folder / "sold.csv"
 
-# find all of the monthly sold files
+# find all the monthly sold files
 sold_files = sorted(csv_folder.glob("CRMLSSold*.csv"))
 
 # choose one file per month so we do not count duplicate _filled files
@@ -42,9 +42,14 @@ for file in chosen_files:
 # combine every month into one dataset
 sold = pd.concat(frames, ignore_index=True, sort=False)
 
+property_type_counts = sold["PropertyType"].value_counts(dropna=False)
+print("\nSold property types before filtering:")
+print(property_type_counts)
+
+
+# Keep only residential properties
 rows_before_filter = len(sold)
 
-# keep only residential properties
 sold = sold[
     sold["PropertyType"].astype(str).str.strip() == "Residential"
 ].copy()
@@ -59,6 +64,63 @@ print("Sold rows after Residential filter:", f"{rows_after_filter:,}")
 print("Rows removed:", f"{rows_before_filter - rows_after_filter:,}")
 print("Final number of columns:", sold.shape[1])
 print("Saved to:", output_file)
+
+
+# week 2-3 dataset validation
+print("Final Sold dataset shape:", sold.shape)
+
+# make sure the required numeric columns are numeric
+numeric_fields = ["ClosePrice", "LivingArea", "DaysOnMarket"]
+
+for column in numeric_fields:
+    sold[column] = pd.to_numeric(sold[column], errors="coerce")
+
+# calculate missing values for every column
+missing_report = pd.DataFrame({
+    "missing_count": sold.isnull().sum(),
+    "missing_percent": sold.isnull().mean() * 100
+}).sort_values("missing_percent", ascending=False)
+
+high_missing = missing_report[missing_report["missing_percent"] > 90]
+
+# summarize the three required numeric fields
+numeric_summary = sold[numeric_fields].describe(
+    percentiles=[0.25, 0.50, 0.75, 0.90, 0.95, 0.99]
+).T
+
+numeric_summary = numeric_summary.rename(columns={"50%": "median"})
+numeric_summary = numeric_summary[
+    ["min", "max", "mean", "median", "25%", "75%", "90%", "95%", "99%"]
+]
+
+# save the validation results as a text file
+report_file = project_folder / "sold_validation.txt"
+
+with open(report_file, "w") as report:
+    report.write("SOLD DATASET VALIDATION\n\n")
+
+    report.write("PROPERTY TYPES BEFORE FILTERING\n")
+    report.write(property_type_counts.to_string())
+
+    report.write(f"\n\nFinal dataset shape: {sold.shape}\n\n")
+
+    report.write("COLUMN DATA TYPES\n")
+    report.write(sold.dtypes.to_string())
+
+    report.write("\n\nMISSING VALUE REPORT\n")
+    report.write(missing_report.to_string())
+
+    report.write("\n\nCOLUMNS ABOVE 90% MISSING\n")
+    report.write(high_missing.to_string())
+
+    report.write("\n\nNUMERIC DISTRIBUTION SUMMARY\n")
+    report.write(numeric_summary.to_string())
+
+print("\nColumns above 90% missing:", len(high_missing))
+print("\nSold numeric summary:")
+print(numeric_summary)
+print("Validation report saved to:", report_file)
+
 
 
 
