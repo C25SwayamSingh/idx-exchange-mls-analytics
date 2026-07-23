@@ -93,6 +93,7 @@ def clean_dataset(input_name, output_name, report_name):
     )
     report.append("")
 
+
     # ---------------------------------------------------------
     # 2. Drop columns above 90% missing
     # ---------------------------------------------------------
@@ -282,7 +283,43 @@ def clean_dataset(input_name, output_name, report_name):
         )
 
     # ---------------------------------------------------------
-    # 9. Validate and create the report
+    # 9. Add early Week 5 analysis-use flags
+    # ---------------------------------------------------------
+
+    # Rows with bad coordinates should not be used for map visuals
+    if "geographic_issue_flag" in df.columns:
+        df["use_for_map_analysis"] = ~df["geographic_issue_flag"]
+
+    # Rows with invalid close prices should not be used for price analysis
+    if "invalid_close_price_flag" in df.columns:
+        df["use_for_price_analysis"] = ~df["invalid_close_price_flag"]
+
+    # Rows with invalid living area should not be used for size/area analysis
+    if "invalid_living_area_flag" in df.columns:
+        df["use_for_living_area_analysis"] = ~df["invalid_living_area_flag"]
+
+    # Rows with negative DOM should not be used for average DOM
+    if "negative_dom_flag" in df.columns:
+        df["use_for_dom_analysis"] = ~df["negative_dom_flag"]
+
+    # Rows with bad date order should not be used for timeline calculations
+    timeline_flags = [
+        "listing_after_close_flag",
+        "purchase_after_close_flag",
+        "negative_timeline_flag"
+    ]
+
+    existing_timeline_flags = [
+        col for col in timeline_flags if col in df.columns
+    ]
+
+    if existing_timeline_flags:
+        df["use_for_timeline_analysis"] = (
+            ~df[existing_timeline_flags].any(axis=1)
+        )
+
+    # ---------------------------------------------------------
+    # 10. Validate and create the report
     # ---------------------------------------------------------
     ending_rows = len(df)
     ending_columns = len(df.columns)
@@ -312,7 +349,21 @@ def clean_dataset(input_name, output_name, report_name):
     report.append("")
     report.append("Flag totals:")
 
+
     for col in flag_columns:
+        report.append(
+            f"{col}: {int(df[col].sum())}"
+        )
+    # Early Week 5 analysis-use counts
+    analysis_use_columns = [
+        col for col in df.columns
+        if col.startswith("use_for_")
+    ]
+
+    report.append("")
+    report.append("Early Week 5 analysis-use counts:")
+
+    for col in analysis_use_columns:
         report.append(
             f"{col}: {int(df[col].sum())}"
         )

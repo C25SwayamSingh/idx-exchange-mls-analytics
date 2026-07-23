@@ -4,3 +4,10 @@ __pycache__/
 *.pyc
 .DS_Store
 .idea/
+# Sensitive local files - NEVER PUSH
+key
+/key
+**/key
+*.key
+.env
+.env.*
