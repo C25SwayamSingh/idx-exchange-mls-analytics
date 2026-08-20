@@ -107,7 +107,7 @@ def run_week7(input_name, flagged_name, filtered_name, report_name, price_column
 
 # sold homes have a close price
 run_week7(
-    input_name="sold_week6_metrics.csv",
+    input_name="sold_week6_districts.csv",
     flagged_name="sold_week7_flagged.csv",
     filtered_name="sold_week7_filtered.csv",
     report_name="sold_week7_outlier_report.txt",
@@ -116,7 +116,7 @@ run_week7(
 
 # listings only have a list price
 run_week7(
-    input_name="listings_week6_metrics.csv",
+    input_name="listings_week6_districts.csv",
     flagged_name="listings_week7_flagged.csv",
     filtered_name="listings_week7_filtered.csv",
     report_name="listings_week7_outlier_report.txt",
